@@ -6,455 +6,382 @@
 <title>機車抽籤系統</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif; background: #0f1117; color: #e8e8e8; min-height: 100vh; }
-  
-  .topbar { background: #1a1d27; border-bottom: 1px solid #2a2d3a; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
-  .topbar h1 { font-size: 18px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 10px; }
-  .topbar h1 span { font-size: 22px; }
-  .topbar .sub { font-size: 13px; color: #6b7280; }
-  .datetime { font-size: 13px; color: #6b7280; }
-
-  .main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
-
-  .tabs { display: flex; gap: 4px; background: #1a1d27; border-radius: 10px; padding: 4px; margin-bottom: 28px; }
-  .tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; color: #9ca3af; border-radius: 8px; transition: all 0.2s; }
-  .tab:hover { color: #e8e8e8; background: #252836; }
-  .tab.active { background: #4f46e5; color: #fff; }
-
-  .card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-  .card-title { font-size: 13px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  .card-title::before { content: ''; width: 3px; height: 14px; background: #4f46e5; border-radius: 2px; display: inline-block; }
-
-  .upload-zone { border: 2px dashed #2a2d3a; border-radius: 10px; padding: 40px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: #12141e; }
-  .upload-zone:hover { border-color: #4f46e5; background: #1e1f35; }
-  .upload-zone .icon { font-size: 48px; margin-bottom: 12px; }
-  .upload-zone p { font-size: 15px; font-weight: 500; color: #e8e8e8; margin-bottom: 6px; }
-  .upload-zone small { font-size: 13px; color: #6b7280; }
-  input[type=file] { display: none; }
-
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
-  .btn-primary { background: #4f46e5; color: #fff; }
-  .btn-primary:hover { background: #4338ca; }
-  .btn-primary:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
-  .btn-success { background: #059669; color: #fff; }
-  .btn-success:hover { background: #047857; }
-  .btn-outline { background: transparent; color: #9ca3af; border: 1px solid #374151; }
-  .btn-outline:hover { background: #252836; color: #e8e8e8; }
-  .btn-sm { padding: 6px 14px; font-size: 13px; }
-
-  .msg { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-top: 12px; }
-  .msg-ok { background: #064e3b; color: #6ee7b7; border: 1px solid #065f46; }
-  .msg-err { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
-  .msg-info { background: #1e3a5f; color: #93c5fd; border: 1px solid #1d4ed8; }
-  .hidden { display: none; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead tr { border-bottom: 1px solid #2a2d3a; }
-  th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-  td { padding: 12px 14px; border-bottom: 1px solid #1f2130; color: #d1d5db; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #1f2130; }
-
-  .car-input { width: 130px; padding: 7px 10px; border: 1px solid #374151; border-radius: 6px; font-size: 14px; background: #12141e; color: #e8e8e8; font-family: inherit; }
-  .car-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.2); }
-  .car-input.filled { border-color: #059669; }
-
-  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
-  .stat-card { background: #12141e; border: 1px solid #2a2d3a; border-radius: 10px; padding: 16px 20px; }
-  .stat-num { font-size: 28px; font-weight: 700; color: #fff; }
-  .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
-
-  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-  .badge-green { background: #064e3b; color: #6ee7b7; }
-  .badge-blue { background: #1e3a5f; color: #93c5fd; }
-  .badge-purple { background: #2e1065; color: #c4b5fd; }
-
-  .result-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #12141e; border-radius: 8px; margin-bottom: 8px; border: 1px solid #2a2d3a; }
-  .rank-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-  .rank-1 { background: #d97706; color: #fff; }
-  .rank-2 { background: #6b7280; color: #fff; }
-  .rank-3 { background: #92400e; color: #fff; }
-  .rank-n { background: #1f2937; color: #9ca3af; border: 1px solid #374151; }
-  .rank-alt { background: #1e3a5f; color: #93c5fd; }
-
-  .progress-bar { height: 8px; background: #1f2937; border-radius: 4px; overflow: hidden; margin-top: 8px; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, #4f46e5, #059669); border-radius: 4px; transition: width 0.4s ease; }
-
-  .link-box { background: #12141e; border: 1px solid #374151; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; }
-  .link-box code { font-family: 'Courier New', monospace; font-size: 12px; color: #9ca3af; word-break: break-all; }
-
-  .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
-  .search-input { flex: 1; padding: 10px 14px; border: 1px solid #374151; border-radius: 8px; font-size: 14px; background: #12141e; color: #e8e8e8; font-family: inherit; }
-  .search-input:focus { outline: none; border-color: #4f46e5; }
-
-  .setting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-  .setting-item label { display: block; font-size: 13px; color: #9ca3af; margin-bottom: 6px; }
-  .setting-input { width: 100%; padding: 10px 14px; border: 1px solid #374151; border-radius: 8px; font-size: 15px; font-weight: 600; background: #12141e; color: #e8e8e8; font-family: inherit; }
-  .setting-input:focus { outline: none; border-color: #4f46e5; }
-
-  .action-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .upload-status { font-size: 13px; color: #6b7280; }
-
-  @media (max-width: 600px) {
-    .main { padding: 16px 12px; }
-    .topbar { padding: 12px 16px; }
-    .stats-grid { grid-template-columns: repeat(3,1fr); gap: 8px; }
-    .stat-num { font-size: 22px; }
-    .setting-grid { grid-template-columns: 1fr 1fr; }
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft JhengHei',sans-serif;background:#0f1117;color:#e8e8e8;min-height:100vh}
+.top{background:#1a1d27;border-bottom:1px solid #2a2d3a;padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
+.top h1{font-size:18px;font-weight:600;color:#fff}
+.top p{font-size:13px;color:#6b7280;margin-top:2px}
+.main{max-width:900px;margin:0 auto;padding:28px 20px}
+.tabs{display:flex;gap:4px;background:#1a1d27;border-radius:10px;padding:4px;margin-bottom:24px}
+.tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:500;cursor:pointer;border:none;background:none;color:#9ca3af;border-radius:8px;font-family:inherit}
+.tab.on{background:#4f46e5;color:#fff}
+.card{background:#1a1d27;border:1px solid #2a2d3a;border-radius:12px;padding:24px;margin-bottom:16px}
+.ct{font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ct::before{content:'';width:3px;height:14px;background:#4f46e5;border-radius:2px;display:inline-block}
+.zone{border:2px dashed #374151;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;background:#12141e}
+.zone:hover{border-color:#4f46e5;background:#1e1f35}
+.zone .ic{font-size:44px;margin-bottom:10px}
+.zone p{font-size:15px;font-weight:500;color:#e8e8e8;margin-bottom:4px}
+.zone small{font-size:13px;color:#6b7280}
+input[type=file]{display:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;font-family:inherit}
+.bp{background:#4f46e5;color:#fff}.bp:hover{background:#4338ca}.bp:disabled{background:#374151;color:#6b7280;cursor:not-allowed}
+.bs{background:#059669;color:#fff}.bs:hover{background:#047857}
+.bo{background:transparent;color:#9ca3af;border:1px solid #374151}.bo:hover{background:#252836;color:#e8e8e8}
+.bsm{padding:6px 12px;font-size:13px}
+.msg{padding:12px 16px;border-radius:8px;font-size:14px;margin-top:12px}
+.ok{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
+.er{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b}
+.inf{background:#1e3a5f;color:#93c5fd;border:1px solid #1d4ed8}
+.hide{display:none}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:9px 12px;font-size:12px;font-weight:600;color:#6b7280;border-bottom:1px solid #2a2d3a}
+td{padding:11px 12px;border-bottom:1px solid #1f2130;color:#d1d5db}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1f2130}
+.ci{width:120px;padding:6px 10px;border:1px solid #374151;border-radius:6px;font-size:14px;background:#12141e;color:#e8e8e8;font-family:inherit}
+.ci:focus{outline:none;border-color:#4f46e5}
+.ci.ok2{border-color:#059669}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.sc{background:#12141e;border:1px solid #2a2d3a;border-radius:10px;padding:16px}
+.sn{font-size:26px;font-weight:700;color:#fff}
+.sl{font-size:12px;color:#6b7280;margin-top:2px}
+.bdg{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.bg{background:#064e3b;color:#6ee7b7}
+.bb{background:#1e3a5f;color:#93c5fd}
+.bp2{background:#2e1065;color:#c4b5fd}
+.ri{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#12141e;border-radius:8px;margin-bottom:8px;border:1px solid #2a2d3a}
+.rk{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.r1{background:#d97706;color:#fff}.r2{background:#6b7280;color:#fff}.r3{background:#92400e;color:#fff}
+.rn{background:#1f2937;color:#9ca3af;border:1px solid #374151}.ra{background:#1e3a5f;color:#93c5fd}
+.pb{height:7px;background:#1f2937;border-radius:4px;overflow:hidden;margin-top:6px}
+.pf{height:100%;background:linear-gradient(90deg,#4f46e5,#059669);border-radius:4px;transition:width .4s}
+.lb{background:#12141e;border:1px solid #374151;border-radius:8px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0}
+.lb code{font-family:monospace;font-size:12px;color:#9ca3af;word-break:break-all}
+.sr{display:flex;gap:8px;margin-bottom:14px}
+.si{flex:1;padding:9px 12px;border:1px solid #374151;border-radius:8px;font-size:14px;background:#12141e;color:#e8e8e8;font-family:inherit}
+.si:focus{outline:none;border-color:#4f46e5}
+.set{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.set label{display:block;font-size:13px;color:#9ca3af;margin-bottom:5px}
+.set input{width:100%;padding:9px 12px;border:1px solid #374151;border-radius:8px;font-size:15px;font-weight:600;background:#12141e;color:#e8e8e8;font-family:inherit}
+.ar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 </style>
 </head>
 <body>
-
-<div class="topbar">
+<div class="top">
   <div>
-    <h1><span>🏍️</span> 機車抽籤系統</h1>
-    <div class="sub">上傳名單 · 填寫車號 · 公平抽籤</div>
+    <h1>🏍️ 機車抽籤系統</h1>
+    <p>上傳名單 · 填寫車號 · 公平抽籤</p>
   </div>
-  <div class="datetime" id="clock"></div>
+  <div style="font-size:13px;color:#6b7280" id="clk"></div>
 </div>
-
 <div class="main">
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('admin')">🛡️ 管理員</button>
-    <button class="tab" onclick="switchTab('user')">👤 填寫車號</button>
-    <button class="tab" onclick="switchTab('draw')">🎟️ 抽籤</button>
+    <button class="tab on" onclick="sw('a')">🛡️ 管理員</button>
+    <button class="tab" onclick="sw('u')">👤 填寫車號</button>
+    <button class="tab" onclick="sw('d')">🎟️ 抽籤</button>
   </div>
 
-  <!-- 管理員 -->
-  <div id="p-admin">
+  <div id="pa">
     <div class="card">
-      <div class="card-title">步驟一：上傳名單</div>
-      <div class="upload-zone" onclick="document.getElementById('fi').click()">
-        <div class="icon">📊</div>
+      <div class="ct">步驟一：上傳名單</div>
+      <div class="zone" onclick="document.getElementById('fi').click()">
+        <div class="ic">📊</div>
         <p>點擊這裡選擇 Excel 檔案</p>
         <small>支援 .xlsx / .xls / .csv｜需有「單位」「姓名」「工號」欄位｜自動合併所有分頁</small>
       </div>
-      <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="readFile(this)">
-      <div id="m1" class="hidden"></div>
+      <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="rf(this)">
+      <div id="m1" class="hide"></div>
     </div>
-
-    <div class="card hidden" id="previewCard">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="card-title" style="margin:0">步驟二：確認名單</div>
-        <span id="previewBadge" class="badge badge-purple"></span>
+    <div class="card hide" id="pc">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="ct" style="margin:0">步驟二：確認名單</div>
+        <span id="pb2" class="bdg bp2"></span>
       </div>
-      <div style="overflow-x:auto;margin-bottom:16px">
-        <table>
-          <thead><tr><th>單位</th><th>姓名</th><th>工號</th><th>車號（原有）</th></tr></thead>
-          <tbody id="previewBody"></tbody>
-        </table>
+      <div style="overflow-x:auto;margin-bottom:14px">
+        <table><thead><tr><th>單位</th><th>姓名</th><th>工號</th><th>車號（原有）</th></tr></thead>
+        <tbody id="pbd"></tbody></table>
       </div>
-      <div class="action-row">
-        <button class="btn btn-primary" id="upBtn" onclick="uploadAT()">☁️ 上傳至 Airtable</button>
-        <span class="upload-status" id="upStatus"></span>
+      <div class="ar">
+        <button class="btn bp" id="ub" onclick="upl()">☁️ 上傳至 Airtable</button>
+        <span style="font-size:13px;color:#6b7280" id="us"></span>
       </div>
-      <div id="m2" class="hidden"></div>
+      <div id="m2" class="hide"></div>
     </div>
-
-    <div class="card hidden" id="linkCard">
-      <div class="card-title">步驟三：傳送填寫連結</div>
-      <p style="font-size:14px;color:#9ca3af;margin-bottom:8px">將此連結傳給所有員工，讓他們填寫車號：</p>
-      <div class="link-box">
-        <code id="linkText">—</code>
-        <button class="btn btn-outline btn-sm" onclick="copyLink()">複製</button>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;margin-bottom:4px">
+    <div class="card hide" id="lc">
+      <div class="ct">步驟三：傳送填寫連結</div>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:8px">將此連結傳給所有員工填寫車號：</p>
+      <div class="lb"><code id="lt">—</code><button class="btn bo bsm" onclick="cpl()">複製</button></div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;margin-bottom:4px">
         <span style="font-size:13px;color:#9ca3af">填寫進度</span>
-        <span style="font-size:13px;font-weight:600;color:#e8e8e8" id="progText">0 / 0</span>
+        <span style="font-size:13px;font-weight:600" id="pt">0/0</span>
       </div>
-      <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
-      <div style="margin-top:14px">
-        <button class="btn btn-outline btn-sm" onclick="refreshProg()">🔄 重新整理進度</button>
+      <div class="pb"><div class="pf" id="pff" style="width:0%"></div></div>
+      <div style="margin-top:12px"><button class="btn bo bsm" onclick="rp()">🔄 重新整理進度</button></div>
+    </div>
+  </div>
+
+  <div id="pu" class="hide">
+    <div class="card">
+      <div class="ct">搜尋並填寫車號</div>
+      <div class="sr">
+        <input type="text" class="si" id="sq" placeholder="輸入姓名、工號或單位搜尋..." oninput="ds()">
+        <button class="btn bo" onclick="la()">🔄 載入名單</button>
+      </div>
+      <div id="um" class="hide"></div>
+      <div id="ut" class="hide" style="overflow-x:auto">
+        <table><thead><tr><th>姓名</th><th>工號</th><th>單位</th><th>車號</th><th></th></tr></thead>
+        <tbody id="ub2"></tbody></table>
       </div>
     </div>
   </div>
 
-  <!-- 填寫車號 -->
-  <div id="p-user" class="hidden">
+  <div id="pd" class="hide">
+    <div class="sg">
+      <div class="sc"><div class="sn" id="st">—</div><div class="sl">總人數</div></div>
+      <div class="sc"><div class="sn" id="sf" style="color:#6ee7b7">—</div><div class="sl">已填車號</div></div>
+      <div class="sc"><div class="sn" id="sp" style="color:#fca5a5">—</div><div class="sl">未填寫</div></div>
+    </div>
     <div class="card">
-      <div class="card-title">搜尋並填寫車號</div>
-      <div class="search-row">
-        <input type="text" class="search-input" id="sq" placeholder="輸入姓名、工號或單位搜尋..." oninput="doSearch()">
-        <button class="btn btn-outline" onclick="loadAT()">🔄 載入名單</button>
+      <div class="ct">抽籤設定</div>
+      <div class="set">
+        <div><label>正式名額</label><input type="number" id="ms" value="155"></div>
+        <div><label>候補名額</label><input type="number" id="as" value="20"></div>
       </div>
-      <div id="um" class="hidden"></div>
-      <div id="userTable" class="hidden" style="overflow-x:auto">
-        <table>
-          <thead><tr><th>姓名</th><th>工號</th><th>單位</th><th>車號</th><th></th></tr></thead>
-          <tbody id="userBody"></tbody>
-        </table>
+      <div id="dm" class="msg inf" style="margin-bottom:14px">請先載入資料再抽籤。</div>
+      <div class="ar">
+        <button class="btn bo" onclick="ld()">🔄 載入資料</button>
+        <button class="btn bs" id="db" onclick="draw()" disabled>▶ 開始抽籤</button>
       </div>
     </div>
-  </div>
-
-  <!-- 抽籤 -->
-  <div id="p-draw" class="hidden">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num" id="sTotal">—</div><div class="stat-label">總人數</div></div>
-      <div class="stat-card"><div class="stat-num" id="sFilled" style="color:#6ee7b7">—</div><div class="stat-label">已填車號</div></div>
-      <div class="stat-card"><div class="stat-num" id="sPending" style="color:#fca5a5">—</div><div class="stat-label">未填寫</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">抽籤設定</div>
-      <div class="setting-grid">
-        <div class="setting-item">
-          <label>正式名額</label>
-          <input type="number" class="setting-input" id="ms" value="155">
-        </div>
-        <div class="setting-item">
-          <label>候補名額</label>
-          <input type="number" class="setting-input" id="as" value="20">
-        </div>
-      </div>
-      <div id="dm" class="msg msg-info" style="margin-bottom:16px">請先載入資料再抽籤。</div>
-      <div class="action-row">
-        <button class="btn btn-outline" onclick="loadDraw()">🔄 載入資料</button>
-        <button class="btn btn-success" id="drawBtn" onclick="doDraw()" disabled>▶ 開始抽籤</button>
-      </div>
-    </div>
-
-    <div class="card hidden" id="resultCard">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="card-title" style="margin:0">抽籤結果</div>
+    <div class="card hide" id="rc">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="ct" style="margin:0">抽籤結果</div>
         <div style="display:flex;gap:8px">
-          <span class="badge badge-green">正式 <span id="mc">0</span> 名</span>
-          <span class="badge badge-blue">候補 <span id="ac">0</span> 名</span>
+          <span class="bdg bg">正式 <span id="mc">0</span> 名</span>
+          <span class="bdg bb">候補 <span id="ac">0</span> 名</span>
         </div>
       </div>
-      <div id="resultList"></div>
-      <div style="margin-top:16px">
-        <button class="btn btn-outline" onclick="exportCSV()">⬇️ 匯出結果 CSV</button>
-      </div>
+      <div id="rl"></div>
+      <div style="margin-top:14px"><button class="btn bo" onclick="exp()">⬇️ 匯出結果 CSV</button></div>
     </div>
   </div>
 </div>
 
 <script>
-const TOK = 'pat4O2yLKAWHZmY8a.6687e25afbe8605008e68cb59755617cbee37aad0b06a3e43a615bf40f550fae';
-const BASE = 'appYpKkyDe9kZ9UTY';
-const TBL = 'tblD31nIFDc7i1XaU';
-const URL0 = `https://api.airtable.com/v0/${BASE}/${TBL}`;
-const HDR = {'Authorization':`Bearer ${TOK}`,'Content-Type':'application/json'};
-let local=[], atRecs=[];
+var T='pat4O2yLKAWHZmY8a.6687e25afbe8605008e68cb59755617cbee37aad0b06a3e43a615bf40f550fae';
+var B='appYpKkyDe9kZ9UTY';
+var TL='tblD31nIFDc7i1XaU';
+var U='https://api.airtable.com/v0/'+B+'/'+TL;
+var H={'Authorization':'Bearer '+T,'Content-Type':'application/json'};
+var loc=[],recs=[];
 
-// 時鐘
-setInterval(()=>{
-  const d=new Date();
-  document.getElementById('clock').textContent=d.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+setInterval(function(){
+  var d=new Date();
+  document.getElementById('clk').textContent=d.toLocaleString('zh-TW');
 },1000);
 
-function switchTab(t) {
-  ['admin','user','draw'].forEach((id,i)=>{
-    document.getElementById('p-'+id).classList.toggle('hidden',id!==t);
-    document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
+function sw(t){
+  ['a','u','d'].forEach(function(id,i){
+    document.getElementById('p'+id).classList.toggle('hide',id!==t);
+    document.querySelectorAll('.tab')[i].classList.toggle('on',id===t);
   });
-  if(t==='user') loadAT();
-  if(t==='draw') loadDraw();
+  if(t==='u')la();
+  if(t==='d')ld();
 }
 
-function readFile(inp) {
-  const f=inp.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=e=>{
-    try {
-      const wb=XLSX.read(e.target.result,{type:'binary'});
-      let all=[];
-      wb.SheetNames.forEach(sn=>{
-        const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''});
+function rf(inp){
+  var f=inp.files[0]; if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'binary'});
+      var all=[];
+      wb.SheetNames.forEach(function(sn){
+        var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''});
         all=all.concat(rows);
       });
-      if(!all.length){showMsg('m1','err','檔案沒有資料');return;}
-      local=all.map(r=>({
+      if(!all.length){sm('m1','er','檔案沒有資料');return;}
+      loc=all.map(function(r){return{
         單位:String(r['單位']||r['部門']||'').trim(),
         姓名:String(r['姓名']||r['name']||'').trim(),
         工號:String(r['工號']||r['ID']||'').trim(),
         車號:String(r['車號']||r['機車車號']||'').trim()
-      })).filter(r=>r.姓名);
-      if(!local.length){showMsg('m1','err','找不到「姓名」欄位，請確認 Excel 格式');return;}
-      const tbody=document.getElementById('previewBody');
-      tbody.innerHTML=local.slice(0,8).map(r=>`<tr><td>${r.單位}</td><td>${r.姓名}</td><td>${r.工號}</td><td style="color:#6b7280">${r.車號||'（待填）'}</td></tr>`).join('')
-        +(local.length>8?`<tr><td colspan="4" style="color:#6b7280;font-size:13px;padding:10px 14px">... 還有 ${local.length-8} 人</td></tr>`:'');
-      document.getElementById('previewBadge').textContent=`共 ${local.length} 人`;
-      document.getElementById('previewCard').classList.remove('hidden');
-      showMsg('m1','ok',`✓ 成功讀取 ${local.length} 筆資料（${wb.SheetNames.length} 個分頁自動合併）`);
-    } catch(err){showMsg('m1','err','讀取失敗，請確認檔案格式');}
+      };}).filter(function(r){return r.姓名;});
+      if(!loc.length){sm('m1','er','找不到姓名欄位，請確認格式');return;}
+      var tb=document.getElementById('pbd');
+      tb.innerHTML=loc.slice(0,8).map(function(r){
+        return '<tr><td>'+r.單位+'</td><td>'+r.姓名+'</td><td>'+r.工號+'</td><td style="color:#6b7280">'+(r.車號||'（待填）')+'</td></tr>';
+      }).join('')+(loc.length>8?'<tr><td colspan="4" style="color:#6b7280;font-size:13px;padding:10px 12px">... 還有'+(loc.length-8)+'人</td></tr>':'');
+      document.getElementById('pb2').textContent='共'+loc.length+'人';
+      document.getElementById('pc').classList.remove('hide');
+      sm('m1','ok','✓ 成功讀取'+loc.length+'筆資料（'+wb.SheetNames.length+'個分頁合併）');
+    }catch(e){sm('m1','er','讀取失敗，請確認檔案格式');}
   };
   r.readAsBinaryString(f);
 }
 
-async function uploadAT() {
-  const btn=document.getElementById('upBtn');
+async function upl(){
+  var btn=document.getElementById('ub');
   btn.disabled=true; btn.textContent='上傳中...';
-  const st=document.getElementById('upStatus');
-  try {
-    const ex=await fetchAll();
+  var st=document.getElementById('us');
+  try{
+    var ex=await fa();
     if(ex.length){
-      const ch=chunk(ex.map(r=>r.id),10);
-      for(const c of ch) await fetch(URL0+'?'+c.map(id=>`records[]=${id}`).join('&'),{method:'DELETE',headers:HDR});
+      var ch=ck(ex.map(function(r){return r.id;}),10);
+      for(var i=0;i<ch.length;i++){
+        await fetch(U+'?'+ch[i].map(function(id){return'records[]='+id;}).join('&'),{method:'DELETE',headers:H});
+      }
     }
-    const ch=chunk(local,10); let done=0;
-    for(const c of ch){
-      const res=await fetch(URL0,{method:'POST',headers:HDR,body:JSON.stringify({records:c.map(r=>({fields:{單位:r.單位,姓名:r.姓名,工號:r.工號,車號:r.車號}}))})});
-      if(!res.ok){const d=await res.json();throw new Error(d.error?.message||'API 錯誤');}
-      done+=c.length; st.textContent=`已上傳 ${done} / ${local.length} 筆`;
+    var ch2=ck(loc,10); var done=0;
+    for(var i=0;i<ch2.length;i++){
+      var res=await fetch(U,{method:'POST',headers:H,body:JSON.stringify({records:ch2[i].map(function(r){return{fields:{單位:r.單位,姓名:r.姓名,工號:r.工號,車號:r.車號}};})})});
+      if(!res.ok){var d=await res.json();throw new Error(d.error?d.error.message:'API錯誤 '+res.status);}
+      done+=ch2[i].length; st.textContent='已上傳'+done+'/'+loc.length+'筆';
     }
-    document.getElementById('linkCard').classList.remove('hidden');
-    document.getElementById('linkText').textContent=window.location.href;
-    await refreshProg();
-    btn.textContent='✓ 上傳完成'; btn.className='btn btn-success';
-    showMsg('m2','ok','✓ 名單已成功上傳！現在可以將連結傳給員工填寫車號。');
-  } catch(err){
-    showMsg('m2','err','上傳失敗：'+err.message);
+    document.getElementById('lc').classList.remove('hide');
+    document.getElementById('lt').textContent=window.location.href;
+    await rp();
+    btn.textContent='✓ 上傳完成'; btn.className='btn bs';
+    sm('m2','ok','✓ 名單上傳成功！可以將連結傳給員工填寫車號。');
+  }catch(e){
+    sm('m2','er','上傳失敗：'+e.message);
     btn.disabled=false; btn.textContent='☁️ 上傳至 Airtable';
   }
 }
 
-async function fetchAll() {
-  let recs=[],off='';
-  do {
-    const res=await fetch(URL0+'?pageSize=100'+(off?'&offset='+off:''),{headers:{Authorization:`Bearer ${TOK}`}});
-    const d=await res.json();
-    if(d.error) throw new Error(d.error.message);
-    recs=recs.concat(d.records||[]); off=d.offset||'';
-  } while(off);
-  return recs;
+async function fa(){
+  var recs2=[],off='';
+  do{
+    var res=await fetch(U+'?pageSize=100'+(off?'&offset='+off:''),{headers:{Authorization:'Bearer '+T}});
+    var d=await res.json();
+    if(d.error)throw new Error(d.error.message);
+    recs2=recs2.concat(d.records||[]); off=d.offset||'';
+  }while(off);
+  return recs2;
 }
 
-async function refreshProg() {
-  const r=await fetchAll();
-  const t=r.length, f=r.filter(x=>x.fields['車號']).length;
-  document.getElementById('progText').textContent=`${f} / ${t}`;
-  document.getElementById('progFill').style.width=t?Math.round(f/t*100)+'%':'0%';
+async function rp(){
+  var r=await fa();
+  var t=r.length,f=r.filter(function(x){return x.fields['車號'];}).length;
+  document.getElementById('pt').textContent=f+'/'+t;
+  document.getElementById('pff').style.width=t?Math.round(f/t*100)+'%':'0%';
 }
 
-async function loadAT() {
-  showMsg2('um','info','載入中...');
-  try {
-    atRecs=await fetchAll();
-    document.getElementById('um').classList.add('hidden');
-    renderUser(atRecs);
-  } catch(e){ showMsg2('um','err','載入失敗：'+e.message); }
+async function la(){
+  sm2('um','inf','載入中...');
+  try{
+    recs=await fa();
+    document.getElementById('um').classList.add('hide');
+    ru(recs);
+  }catch(e){sm2('um','er','載入失敗：'+e.message);}
 }
 
-function doSearch() {
-  const q=document.getElementById('sq').value.trim().toLowerCase();
-  renderUser(q?atRecs.filter(r=>(r.fields['姓名']||'').toLowerCase().includes(q)||(r.fields['工號']||'').toLowerCase().includes(q)||(r.fields['單位']||'').toLowerCase().includes(q)):atRecs);
+function ds(){
+  var q=document.getElementById('sq').value.trim().toLowerCase();
+  ru(q?recs.filter(function(r){
+    return(r.fields['姓名']||'').toLowerCase().includes(q)||
+           (r.fields['工號']||'').toLowerCase().includes(q)||
+           (r.fields['單位']||'').toLowerCase().includes(q);
+  }):recs);
 }
 
-function renderUser(recs) {
-  const tb=document.getElementById('userBody'), wrap=document.getElementById('userTable');
-  if(!recs.length){
-    tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:20px">找不到符合的人員</td></tr>';
-    wrap.classList.remove('hidden'); return;
+function ru(list){
+  var tb=document.getElementById('ub2'),wrap=document.getElementById('ut');
+  if(!list.length){
+    tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:18px">找不到符合的人員</td></tr>';
+    wrap.classList.remove('hide'); return;
   }
-  tb.innerHTML=recs.map(r=>{
-    const v=r.fields['車號']||'';
-    return `<tr>
-      <td style="font-weight:500">${r.fields['姓名']||''}</td>
-      <td style="color:#9ca3af">${r.fields['工號']||''}</td>
-      <td style="color:#9ca3af">${r.fields['單位']||''}</td>
-      <td><input class="car-input${v?' filled':''}" value="${v}" placeholder="填入車號" id="c_${r.id}" maxlength="10"></td>
-      <td><button class="btn btn-outline btn-sm" onclick="save('${r.id}')">✓ 儲存</button></td>
-    </tr>`;
+  tb.innerHTML=list.map(function(r){
+    var v=r.fields['車號']||'';
+    return '<tr><td style="font-weight:500">'+r.fields['姓名']+
+      '</td><td style="color:#9ca3af">'+r.fields['工號']+
+      '</td><td style="color:#9ca3af">'+r.fields['單位']+
+      '</td><td><input class="ci'+(v?' ok2':'')+'" value="'+v+'" placeholder="填入車號" id="c_'+r.id+'" maxlength="10"></td>'+
+      '<td><button class="btn bo bsm" onclick="sv(\''+r.id+'\')">✓ 儲存</button></td></tr>';
   }).join('');
-  wrap.classList.remove('hidden');
+  wrap.classList.remove('hide');
 }
 
-async function save(id) {
-  const inp=document.getElementById('c_'+id);
-  const v=inp.value.trim().toUpperCase();
+async function sv(id){
+  var inp=document.getElementById('c_'+id);
+  var v=inp.value.trim().toUpperCase();
   if(!v){alert('請填入車號');return;}
-  try {
-    const res=await fetch(`${URL0}/${id}`,{method:'PATCH',headers:HDR,body:JSON.stringify({fields:{車號:v}})});
-    if(!res.ok) throw new Error('API 錯誤');
-    inp.classList.add('filled');
-    const rec=atRecs.find(x=>x.id===id); if(rec) rec.fields['車號']=v;
-  } catch(e){alert('儲存失敗，請重試');}
+  try{
+    var res=await fetch(U+'/'+id,{method:'PATCH',headers:H,body:JSON.stringify({fields:{車號:v}})});
+    if(!res.ok)throw new Error('API錯誤');
+    inp.classList.add('ok2');
+    var rec=recs.find(function(x){return x.id===id;}); if(rec)rec.fields['車號']=v;
+  }catch(e){alert('儲存失敗，請重試');}
 }
 
-async function loadDraw() {
-  const dm=document.getElementById('dm'); dm.className='msg msg-info'; dm.textContent='載入中...';
-  try {
-    atRecs=await fetchAll();
-    const t=atRecs.length, f=atRecs.filter(r=>r.fields['車號']).length;
-    document.getElementById('sTotal').textContent=t;
-    document.getElementById('sFilled').textContent=f;
-    document.getElementById('sPending').textContent=t-f;
-    if(f===0){dm.textContent='目前沒有人填寫車號，無法抽籤。'; document.getElementById('drawBtn').disabled=true;}
-    else{dm.className='msg msg-ok'; dm.textContent=`✓ 已有 ${f} 人填寫車號，可以開始抽籤！`; document.getElementById('drawBtn').disabled=false;}
-  } catch(e){dm.className='msg msg-err'; dm.textContent='載入失敗：'+e.message;}
+async function ld(){
+  var dm=document.getElementById('dm'); dm.className='msg inf'; dm.textContent='載入中...';
+  try{
+    recs=await fa();
+    var t=recs.length,f=recs.filter(function(r){return r.fields['車號'];}).length;
+    document.getElementById('st').textContent=t;
+    document.getElementById('sf').textContent=f;
+    document.getElementById('sp').textContent=t-f;
+    if(f===0){dm.textContent='目前沒有人填寫車號。'; document.getElementById('db').disabled=true;}
+    else{dm.className='msg ok'; dm.textContent='✓ 已有'+f+'人填寫車號，可以抽籤！'; document.getElementById('db').disabled=false;}
+  }catch(e){dm.className='msg er'; dm.textContent='載入失敗：'+e.message;}
 }
 
-function doDraw() {
-  const pool=atRecs.filter(r=>r.fields['車號']); if(!pool.length) return;
-  // 三輪 Fisher-Yates 密碼級隨機
-  for(let round=0;round<3;round++){
-    for(let i=pool.length-1;i>0;i--){
-      const a=new Uint32Array(1); crypto.getRandomValues(a);
-      const j=a[0]%(i+1); [pool[i],pool[j]]=[pool[j],pool[i]];
+function draw(){
+  var pool=recs.filter(function(r){return r.fields['車號'];}); if(!pool.length)return;
+  for(var rd=0;rd<3;rd++){
+    for(var i=pool.length-1;i>0;i--){
+      var a=new Uint32Array(1); crypto.getRandomValues(a);
+      var j=a[0]%(i+1); var tmp=pool[i]; pool[i]=pool[j]; pool[j]=tmp;
     }
   }
-  const m=parseInt(document.getElementById('ms').value)||155;
-  const a=parseInt(document.getElementById('as').value)||20;
-  const ml=pool.slice(0,m), al=pool.slice(m,m+a);
+  var m=parseInt(document.getElementById('ms').value)||155;
+  var a=parseInt(document.getElementById('as').value)||20;
+  var ml=pool.slice(0,m),al=pool.slice(m,m+a);
   document.getElementById('mc').textContent=ml.length;
   document.getElementById('ac').textContent=al.length;
-  const rl=document.getElementById('resultList'); rl.innerHTML='';
-  ml.forEach((r,i)=>{
-    const d=document.createElement('div'); d.className='result-item';
-    const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
-    d.innerHTML=`<div class="rank-circle ${rc}">${i+1}</div>
-      <div style="flex:1">
-        <span style="font-weight:600;color:#e8e8e8">${r.fields['姓名']}</span>
-        <span style="color:#9ca3af;font-size:13px;margin-left:8px">${r.fields['工號']||''}</span>
-        <span style="color:#6b7280;font-size:12px;margin-left:6px">${r.fields['單位']||''}</span>
-      </div>
-      <span style="font-family:monospace;font-size:13px;color:#9ca3af;margin-right:10px">${r.fields['車號']}</span>
-      <span class="badge badge-green" style="font-size:11px">正式</span>`;
+  var rl=document.getElementById('rl'); rl.innerHTML='';
+  ml.forEach(function(r,i){
+    var d=document.createElement('div'); d.className='ri';
+    var rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+    d.innerHTML='<div class="rk '+rc+'">'+(i+1)+'</div>'+
+      '<div style="flex:1"><span style="font-weight:600">'+r.fields['姓名']+'</span>'+
+      '<span style="color:#9ca3af;font-size:12px;margin-left:8px">'+r.fields['工號']+'</span>'+
+      '<span style="color:#6b7280;font-size:12px;margin-left:6px">'+r.fields['單位']+'</span></div>'+
+      '<span style="font-family:monospace;font-size:13px;color:#9ca3af;margin-right:8px">'+r.fields['車號']+'</span>'+
+      '<span class="bdg bg" style="font-size:11px">正式</span>';
     rl.appendChild(d);
   });
-  al.forEach((r,i)=>{
-    const d=document.createElement('div'); d.className='result-item';
-    d.innerHTML=`<div class="rank-circle rank-alt">補${i+1}</div>
-      <div style="flex:1">
-        <span style="font-weight:600;color:#e8e8e8">${r.fields['姓名']}</span>
-        <span style="color:#9ca3af;font-size:13px;margin-left:8px">${r.fields['工號']||''}</span>
-        <span style="color:#6b7280;font-size:12px;margin-left:6px">${r.fields['單位']||''}</span>
-      </div>
-      <span style="font-family:monospace;font-size:13px;color:#9ca3af;margin-right:10px">${r.fields['車號']}</span>
-      <span class="badge badge-blue" style="font-size:11px">候補</span>`;
+  al.forEach(function(r,i){
+    var d=document.createElement('div'); d.className='ri';
+    d.innerHTML='<div class="rk ra">補'+(i+1)+'</div>'+
+      '<div style="flex:1"><span style="font-weight:600">'+r.fields['姓名']+'</span>'+
+      '<span style="color:#9ca3af;font-size:12px;margin-left:8px">'+r.fields['工號']+'</span>'+
+      '<span style="color:#6b7280;font-size:12px;margin-left:6px">'+r.fields['單位']+'</span></div>'+
+      '<span style="font-family:monospace;font-size:13px;color:#9ca3af;margin-right:8px">'+r.fields['車號']+'</span>'+
+      '<span class="bdg bb" style="font-size:11px">候補</span>';
     rl.appendChild(d);
   });
-  document.getElementById('resultCard').classList.remove('hidden');
+  document.getElementById('rc').classList.remove('hide');
 }
 
-function exportCSV() {
-  const items=document.querySelectorAll('.result-item'); let csv='順序,姓名,工號,單位,車號,類別\n';
-  items.forEach(item=>{
-    const rank=item.querySelector('.rank-circle').textContent;
-    const spans=item.querySelectorAll('span');
-    const name=spans[0].textContent.trim();
-    const emp=spans[1].textContent.trim();
-    const unit=spans[2].textContent.trim();
-    const car=spans[3].textContent.trim();
-    const type=spans[4].textContent.trim();
-    csv+=`${rank},${name},${emp},${unit},${car},${type}\n`;
+function exp(){
+  var items=document.querySelectorAll('.ri'); var csv='順序,姓名,工號,單位,車號,類別\n';
+  items.forEach(function(item){
+    var rk=item.querySelector('.rk').textContent;
+    var sp=item.querySelectorAll('span');
+    csv+=rk+','+sp[0].textContent.trim()+','+sp[1].textContent.trim()+','+sp[2].textContent.trim()+','+sp[3].textContent.trim()+','+sp[4].textContent.trim()+'\n';
   });
-  const a=document.createElement('a');
+  var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
-  a.download='抽籤結果_'+new Date().toLocaleDateString('zh-TW').replace(/\//g,'')+'.csv';
-  a.click();
+  a.download='抽籤結果.csv'; a.click();
 }
 
-function copyLink(){
-  navigator.clipboard.writeText(window.location.href).then(()=>alert('連結已複製！'));
-}
-function showMsg(id,t,s){const e=document.getElementById(id);e.className=`msg msg-${t}`;e.textContent=s;e.classList.remove('hidden');}
-function showMsg2(id,t,s){const e=document.getElementById(id);e.className=`msg msg-${t}`;e.textContent=s;e.classList.remove('hidden');}
-function chunk(arr,n){const r=[];for(let i=0;i<arr.length;i+=n)r.push(arr.slice(i,i+n));return r;}
+function cpl(){navigator.clipboard.writeText(window.location.href).then(function(){alert('連結已複製！');});}
+function sm(id,t,s){var e=document.getElementById(id);e.className='msg '+t;e.textContent=s;e.classList.remove('hide');}
+function sm2(id,t,s){var e=document.getElementById(id);e.className='msg '+t;e.textContent=s;e.classList.remove('hide');}
+function ck(arr,n){var r=[];for(var i=0;i<arr.length;i+=n)r.push(arr.slice(i,i+n));return r;}
 </script>
 </body>
 </html>
