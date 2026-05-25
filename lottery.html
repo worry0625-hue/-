@@ -65,6 +65,12 @@ tr:hover td{background:#1f2130}
 .set label{display:block;font-size:13px;color:#9ca3af;margin-bottom:5px}
 .set input{width:100%;padding:9px 12px;border:1px solid #374151;border-radius:8px;font-size:15px;font-weight:600;background:#12141e;color:#e8e8e8;font-family:inherit}
 .ar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tok-box{background:#12141e;border:1px solid #374151;border-radius:8px;padding:16px;margin-bottom:16px}
+.tok-box p{font-size:13px;color:#9ca3af;margin-bottom:8px}
+.tok-row{display:flex;gap:8px}
+.tok-input{flex:1;padding:9px 12px;border:1px solid #374151;border-radius:8px;font-size:13px;background:#0f1117;color:#e8e8e8;font-family:monospace}
+.tok-input:focus{outline:none;border-color:#4f46e5}
+.tok-ok{font-size:12px;color:#6ee7b7;margin-top:6px}
 </style>
 </head>
 <body>
@@ -76,6 +82,17 @@ tr:hover td{background:#1f2130}
   <div style="font-size:13px;color:#6b7280" id="clk"></div>
 </div>
 <div class="main">
+
+  <!-- Token 輸入區 -->
+  <div class="tok-box" id="tokbox">
+    <p>🔑 請輸入 Airtable API Token（每次開啟需輸入一次，不會儲存）</p>
+    <div class="tok-row">
+      <input type="password" class="tok-input" id="tokin" placeholder="pat...">
+      <button class="btn bp" onclick="setTok()">確認</button>
+    </div>
+    <div id="tokst" style="font-size:12px;margin-top:6px;color:#6b7280"></div>
+  </div>
+
   <div class="tabs">
     <button class="tab on" onclick="sw('a')">🛡️ 管理員</button>
     <button class="tab" onclick="sw('u')">👤 填寫車號</button>
@@ -169,17 +186,27 @@ tr:hover td{background:#1f2130}
 </div>
 
 <script>
-var T='pat4O2yLKAWHZmY8a.6687e25afbe8605008e68cb59755617cbee37aad0b06a3e43a615bf40f550fae';
+var T='';
 var B='appYpKkyDe9kZ9UTY';
 var TL='tblD31nIFDc7i1XaU';
-var U='https://api.airtable.com/v0/'+B+'/'+TL;
-var H={'Authorization':'Bearer '+T,'Content-Type':'application/json'};
 var loc=[],recs=[];
+
+function getU(){return 'https://api.airtable.com/v0/'+B+'/'+TL;}
+function getH(){return {'Authorization':'Bearer '+T,'Content-Type':'application/json'};}
 
 setInterval(function(){
   var d=new Date();
   document.getElementById('clk').textContent=d.toLocaleString('zh-TW');
 },1000);
+
+function setTok(){
+  var v=document.getElementById('tokin').value.trim();
+  if(!v){alert('請輸入 Token');return;}
+  T=v;
+  document.getElementById('tokst').textContent='✓ Token 已設定（'+v.substring(0,10)+'...）';
+  document.getElementById('tokst').style.color='#6ee7b7';
+  document.getElementById('tokin').value='';
+}
 
 function sw(t){
   ['a','u','d'].forEach(function(id,i){
@@ -222,6 +249,7 @@ function rf(inp){
 }
 
 async function upl(){
+  if(!T){alert('請先輸入 Airtable Token！');return;}
   var btn=document.getElementById('ub');
   btn.disabled=true; btn.textContent='上傳中...';
   var st=document.getElementById('us');
@@ -230,12 +258,12 @@ async function upl(){
     if(ex.length){
       var ch=ck(ex.map(function(r){return r.id;}),10);
       for(var i=0;i<ch.length;i++){
-        await fetch(U+'?'+ch[i].map(function(id){return'records[]='+id;}).join('&'),{method:'DELETE',headers:H});
+        await fetch(getU()+'?'+ch[i].map(function(id){return'records[]='+id;}).join('&'),{method:'DELETE',headers:getH()});
       }
     }
     var ch2=ck(loc,10); var done=0;
     for(var i=0;i<ch2.length;i++){
-      var res=await fetch(U,{method:'POST',headers:H,body:JSON.stringify({records:ch2[i].map(function(r){return{fields:{單位:r.單位,姓名:r.姓名,工號:r.工號,車號:r.車號}};})})});
+      var res=await fetch(getU(),{method:'POST',headers:getH(),body:JSON.stringify({records:ch2[i].map(function(r){return{fields:{單位:r.單位,姓名:r.姓名,工號:r.工號,車號:r.車號}};})})});
       if(!res.ok){var d=await res.json();throw new Error(d.error?d.error.message:'API錯誤 '+res.status);}
       done+=ch2[i].length; st.textContent='已上傳'+done+'/'+loc.length+'筆';
     }
@@ -253,7 +281,7 @@ async function upl(){
 async function fa(){
   var recs2=[],off='';
   do{
-    var res=await fetch(U+'?pageSize=100'+(off?'&offset='+off:''),{headers:{Authorization:'Bearer '+T}});
+    var res=await fetch(getU()+'?pageSize=100'+(off?'&offset='+off:''),{headers:{Authorization:'Bearer '+T}});
     var d=await res.json();
     if(d.error)throw new Error(d.error.message);
     recs2=recs2.concat(d.records||[]); off=d.offset||'';
@@ -269,6 +297,7 @@ async function rp(){
 }
 
 async function la(){
+  if(!T){sm2('um','inf','請先在上方輸入 Token 後載入');return;}
   sm2('um','inf','載入中...');
   try{
     recs=await fa();
@@ -304,11 +333,12 @@ function ru(list){
 }
 
 async function sv(id){
+  if(!T){alert('請先輸入 Token');return;}
   var inp=document.getElementById('c_'+id);
   var v=inp.value.trim().toUpperCase();
   if(!v){alert('請填入車號');return;}
   try{
-    var res=await fetch(U+'/'+id,{method:'PATCH',headers:H,body:JSON.stringify({fields:{車號:v}})});
+    var res=await fetch(getU()+'/'+id,{method:'PATCH',headers:getH(),body:JSON.stringify({fields:{車號:v}})});
     if(!res.ok)throw new Error('API錯誤');
     inp.classList.add('ok2');
     var rec=recs.find(function(x){return x.id===id;}); if(rec)rec.fields['車號']=v;
@@ -316,6 +346,7 @@ async function sv(id){
 }
 
 async function ld(){
+  if(!T){var dm=document.getElementById('dm');dm.className='msg er';dm.textContent='請先輸入 Token';return;}
   var dm=document.getElementById('dm'); dm.className='msg inf'; dm.textContent='載入中...';
   try{
     recs=await fa();
